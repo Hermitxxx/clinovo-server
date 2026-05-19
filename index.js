@@ -71,32 +71,31 @@ async function run() {
             res.json(result)
         })
 
-        // update a appointment details
+        // update a user appointment
         app.patch('/bookings/:id', async (req, res) => {
             const id = req.params.id
+            console.log(id);
             const filter = {
-                aptId: id
+                _id: new ObjectId(id)
             }
-            const {
-                date,
-                email,
-                patientName,
-                phone,
-                reason,
-                time
-            } = req.body
+
+            console.log(filter);
+            const editedUser = req.body
+            const doc = {
+                $set: {
+                    patientEmail: editedUser.patientEmail,
+                    patientName: editedUser.patientName,
+                    patientPhone: editedUser.patientPhone,
+                    aptTime: editedUser.aptTime,
+                    aptDate: editedUser.aptDate,
+                    reason: editedUser.reason
+                }
+            }
+            console.log(doc);
             const result = await bookingColl.updateOne(
                 filter,
-                {
-                    $set: {
-                        patientEmail: email,
-                        patientName: patientName,
-                        patientPhone: phone,
-                        aptTime: time,
-                        aptDate: date,
-                        reason: reason
-                    }
-                })
+                doc
+            )
             res.json(result)
         })
 
