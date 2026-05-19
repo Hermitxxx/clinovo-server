@@ -1,4 +1,4 @@
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express = require('express')
 const app = express()
 const cors = require('cors')
@@ -26,6 +26,7 @@ async function run() {
 
         const db = client.db('clinovo')
         const doctorsColl = db.collection('doctors')
+        const bookingColl = db.collection('bookings')
 
         // get all doctors
         app.get('/doctors', async (req, res) => {
@@ -40,6 +41,23 @@ async function run() {
                 rating: -1
             }
             const result = await doctorsColl.find().sort(query).limit(3).toArray()
+            res.json(result)
+        })
+
+        // get single appointment by id
+        app.get('/all-appointments/:id', async (req, res) => {
+            const id = req.params.id
+            const query = {
+                _id: new ObjectId(id)
+            }
+            const result = await doctorsColl.findOne(query)
+            res.json(result)
+        })
+
+        // post appointment 
+        app.post('/bookings', async (req, res) => {
+            const data = req.body
+            const result = await bookingColl.insertOne(data)
             res.json(result)
         })
 
