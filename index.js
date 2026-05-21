@@ -2,7 +2,8 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express = require('express')
 const app = express()
 const cors = require('cors')
-const dotenv = require('dotenv')
+const dotenv = require('dotenv');
+const { createRemoteJWKSet, jwtVerify } = require('jose-cjs');
 const port = 5000
 dotenv.config()
 
@@ -19,6 +20,30 @@ const client = new MongoClient(uri, {
     }
 });
 
+const JWKS = createRemoteJWKSet(
+    new URL(`http://localhost:3000/api/auth/jwks`)
+)
+
+const verifyToken = async (req, res, next) => {
+    const authHeader = req?.headers.authorization
+    if (!authHeader) {
+        return res.status(401).json({ message: 'Unauthorized' })
+    }
+    const token = authHeader.split(' ')[1]
+    if (!token) {
+        return res.status(401).json({ message: 'Unauthorized' })
+    }
+
+    try {
+        const { payload } = await jwtVerify(token, JWKS)
+        console.log(payload);
+        next()
+    } catch (error) {
+        return res.status(403).json({ message: 'Forbidden' })
+    }
+
+}
+
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
@@ -29,14 +54,14 @@ async function run() {
         const bookingColl = db.collection('bookings')
 
         // get all doctors
-        app.get('/doctors', async (req, res) => {
+        app.get('/doctors', await verifyToken, async (req, res) => {
             const cursor = doctorsColl.find()
             const result = await cursor.toArray()
             res.json(result)
         })
 
         // get top doctors
-        app.get('/top-doctors', async (req, res) => {
+        app.get('/top-doctors', await verifyToken, async (req, res) => {
             const query = {
                 rating: -1
             }
@@ -45,8 +70,11 @@ async function run() {
         })
 
         // get single appointment by id
-        app.get('/all-appointments/:id', async (req, res) => {
+        app.get('/all-appointments/:id', await verifyToken, async (req, res, next) => {
             const id = req.params.id
+            // const header = req.headers.authorization
+            // console.log(header);
+
             const query = {
                 _id: new ObjectId(id)
             }
@@ -55,14 +83,14 @@ async function run() {
         })
 
         // post appointment 
-        app.post('/bookings', async (req, res) => {
+        app.post('/bookings', await verifyToken, async (req, res) => {
             const data = req.body
             const result = await bookingColl.insertOne(data)
             res.json(result)
         })
 
         // get a booking by user id
-        app.get('/bookings/:id', async (req, res) => {
+        app.get('/bookings/:id', await verifyToken, async (req, res) => {
             const id = req.params.id
             const query = {
                 bookingId: id
@@ -72,7 +100,7 @@ async function run() {
         })
 
         // update a user appointment
-        app.patch('/bookings/:id', async (req, res) => {
+        app.patch('/bookings/:id', await verifyToken, async (req, res) => {
             const id = req.params.id
             console.log(id);
             const filter = {
@@ -100,7 +128,7 @@ async function run() {
         })
 
         // delete an user 
-        app.delete('/bookings/:id', async (req, res) => {
+        app.delete('/bookings/:id', await verifyToken, async (req, res) => {
             const id = req.params.id
             const query = {
                 _id: new ObjectId(id)
