@@ -4,7 +4,7 @@ const app = express()
 const cors = require('cors')
 const dotenv = require('dotenv');
 const { createRemoteJWKSet, jwtVerify } = require('jose-cjs');
-const port = 5000
+const port = process.env.PORT
 dotenv.config()
 
 const uri = process.env.MONGO_URI
@@ -21,7 +21,7 @@ const client = new MongoClient(uri, {
 });
 
 const JWKS = createRemoteJWKSet(
-    new URL(`http://localhost:3000/api/auth/jwks`)
+    new URL(`${process.env.CLI_URL}/api/auth/jwks`)
 )
 
 const verifyToken = async (req, res, next) => {
@@ -54,14 +54,14 @@ async function run() {
         const bookingColl = db.collection('bookings')
 
         // get all doctors
-        app.get('/doctors', await verifyToken, async (req, res) => {
+        app.get('/doctors', async (req, res) => {
             const cursor = doctorsColl.find()
             const result = await cursor.toArray()
             res.json(result)
         })
 
         // get top doctors
-        app.get('/top-doctors', await verifyToken, async (req, res) => {
+        app.get('/top-doctors', async (req, res) => {
             const query = {
                 rating: -1
             }
